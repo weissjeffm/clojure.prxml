@@ -27,7 +27,8 @@
      :doc "Compact syntax for generating XML. See the documentation of \"prxml\" 
 for details."}
   clojure.prxml
-  (:use [clojure.string :only (escape)]))
+  (:refer-clojure :exclude (replace))
+  (:use [clojure.string :only (escape replace)]))
 
 (def
   ^{:dynamic true
@@ -110,7 +111,13 @@ for details."}
 
 (defmethod print-xml-tag :cdata! [tag attrs contents]
   (print "<![CDATA[")
-  (doseq [c contents] (print c))
+  (doseq [c contents]
+    (.write *out*
+            ;; if cdata end tag occurs in contents,
+            ;; split the cdata tag in two, and continue
+            (replace (with-out-str (print c))
+                     "]]>"
+                     "]]]]><![CDATA[>")))
   (print "]]>"))
 
 (defmethod print-xml-tag :doctype! [tag attrs contents]
